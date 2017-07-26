@@ -2,10 +2,17 @@ package main
 
 import (
 	"fmt"
-	"github.com/dghubble/go-twitter/twitter"
-	"github.com/dghubble/oauth1"
+	"github.com/ChimeraCoder/anaconda"
 	ui "github.com/gizak/termui"
+	"net/url"
+	"strings"
 )
+
+type Config struct {
+	Twitter *anaconda.TwitterApi
+}
+
+var config Config
 
 func main() {
 	if err := ui.Init(); err != nil {
@@ -13,6 +20,8 @@ func main() {
 	}
 
 	defer ui.Close()
+
+	config.Twitter = getTwitterClient()
 
 	bindQuit()
 	bindResize()
@@ -45,11 +54,11 @@ func initDashboard() {
 	week := dailyCommits()
 	water := dailyCommits()
 	weather := makeWeather()
-	tweet1 := makeWeather()
+	magic := magicRealismBox()
 	tweet2 := makeWeather()
 
 	ui.Body.AddRows(
-		ui.NewRow(ui.NewCol(6, 0, today), ui.NewCol(6, 0, weather, tweet1, tweet2)),
+		ui.NewRow(ui.NewCol(6, 0, today), ui.NewCol(6, 0, weather, magic, tweet2)),
 		ui.NewRow(ui.NewCol(6, 0, week), ui.NewCol(6, 0, water)),
 	)
 
@@ -88,10 +97,28 @@ func makeWeather() (w *ui.Par) {
 	return
 }
 
-func getTwitterClient() *twitter.Client {
-	config := oauth1.NewConfig("consumerKey", "consumerSecret")
-	token := oauth1.NewToken("accessToken", "accessSecret")
-	httpClient := config.Client(oauth1.NoContext, token)
+func magicRealismBox() (w *ui.Par) {
+	v := url.Values{}
+	v.Set("count", "5")
+	v.Set("screen_name", "magicrealismbot")
 
-	return twitter.NewClient(httpClient)
+	result, err := config.Twitter.GetUserTimeline(v)
+	if err != nil {
+		panic(err)
+	}
+
+	w = ui.NewPar(fmt.Sprintf("%v", result))
+	w.Height = (int)(ui.TermHeight() / 6)
+	w.BorderLabel = " [@](fg-green)magicrealismbot "
+	w.BorderFg = ui.ColorBlue
+	w.BorderLabelFg = ui.ColorWhite
+
+	return
+}
+
+func getTwitterClient() *anaconda.TwitterApi {
+	anaconda.SetConsumerKey("consume")
+	anaconda.SetConsumerSecret("secret")
+
+	return anaconda.NewTwitterApi("access", "secret")
 }
