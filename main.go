@@ -6,8 +6,56 @@ func main() {
 	if err := ui.Init(); err != nil {
 		panic(err)
 	}
+
 	defer ui.Close()
 
+	var pomodoro bool = false
+	var water_log bool = false
+
+	// Quit on 'q'
+	ui.Handle("/sys/kbd/q", func(ui.Event) {
+		ui.StopLoop()
+	})
+
+	// Switch to pomodoro mode
+	ui.Handle("/sys/kbd/p", func(ui.Event) {
+		ui.Clear()
+		pomodoro = !pomodoro
+
+		if pomodoro {
+			initPomodoro()
+		} else {
+			initDashboard()
+		}
+
+		ui.Render(ui.Body)
+	})
+
+	// Display the water log
+	ui.Handle("/sys/kbd/w", func(ui.Event) {
+		water_log = !water_log
+	})
+
+	ui.Handle("/sys/wnd/resize", func(e ui.Event) {
+		ui.Body.Width = ui.TermWidth()
+		ui.Body.Align()
+		ui.Clear()
+		ui.Render(ui.Body)
+	})
+
+	ui.Loop()
+}
+
+func initPomodoro() {
+	today := dailyCommits()
+
+	ui.Body.AddRows(
+		ui.NewRow(ui.NewCol(6, 0, today)),
+	)
+
+}
+
+func initDashboard() {
 	today := dailyCommits()
 	week := dailyCommits()
 	weather := makeWeather()
@@ -19,33 +67,8 @@ func main() {
 		ui.NewRow(ui.NewCol(6, 0, week)),
 	)
 
-	// calculate layout
 	ui.Body.Align()
-
 	ui.Render(ui.Body)
-
-	ui.Handle("/sys/kbd/q", func(ui.Event) {
-		ui.StopLoop()
-	})
-	ui.Handle("/timer/1s", func(e ui.Event) {
-		t := e.Data.(ui.EvtTimer)
-		i := t.Count
-		if i > 103 {
-			ui.StopLoop()
-			return
-		}
-
-		ui.Render(ui.Body)
-	})
-
-	ui.Handle("/sys/wnd/resize", func(e ui.Event) {
-		ui.Body.Width = ui.TermWidth()
-		ui.Body.Align()
-		ui.Clear()
-		ui.Render(ui.Body)
-	})
-
-	ui.Loop()
 }
 
 func dailyCommits() (ls *ui.List) {
@@ -70,7 +93,7 @@ func makeWeather() (w *ui.Par) {
 	w = ui.NewPar("Simple colored text\nwith label. It [can be](fg-red) multilined with \\n or something!")
 	w.Height = 7
 	w.Y = 4
-	w.BorderLabel = "☀️ Weather"
+	w.BorderLabel = " Weather "
 	w.BorderFg = ui.ColorBlue
 	w.BorderLabelFg = ui.ColorWhite
 
