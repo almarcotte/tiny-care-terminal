@@ -5,7 +5,6 @@ import (
 	"github.com/ChimeraCoder/anaconda"
 	ui "github.com/gizak/termui"
 	"net/url"
-	"strings"
 )
 
 type Config struct {
@@ -37,9 +36,10 @@ func bindQuit() {
 }
 
 func bindResize() {
-	ui.Handle("/sys/wnd/resize", func(e ui.Event) {
+	ui.Handle("/sys/wnd/resize", func(ui.Event) {
 		ui.Body.Width = ui.TermWidth()
 		ui.Body.Align()
+		redraw()
 		ui.Clear()
 		ui.Render(ui.Body)
 	})
@@ -57,6 +57,8 @@ func initDashboard() {
 	magic := magicRealismBox()
 	tweet2 := makeWeather()
 
+	ui.Body.Rows = []*ui.Row{}
+
 	ui.Body.AddRows(
 		ui.NewRow(ui.NewCol(6, 0, today), ui.NewCol(6, 0, weather, magic, tweet2)),
 		ui.NewRow(ui.NewCol(6, 0, week), ui.NewCol(6, 0, water)),
@@ -72,8 +74,6 @@ func dailyCommits() (ls *ui.List) {
 		"[e9da701b](fg-green) - Fixed a thing",
 		"[d825f5e0](fg-green) - Added a feature",
 		"[2a84fe96](fg-green) - Initial commit",
-		fmt.Sprintf("Body width: %d", ui.Body.Width),
-		fmt.Sprintf("Body height: %d", ui.TermHeight()),
 	}
 
 	ls = ui.NewList()
@@ -109,7 +109,7 @@ func magicRealismBox() (w *ui.Par) {
 
 	w = ui.NewPar(fmt.Sprintf("%v", result))
 	w.Height = (int)(ui.TermHeight() / 6)
-	w.BorderLabel = " [@](fg-green)magicrealismbot "
+	w.BorderLabel = " [@](fg-green)f0sdf09df "
 	w.BorderFg = ui.ColorBlue
 	w.BorderLabelFg = ui.ColorWhite
 
