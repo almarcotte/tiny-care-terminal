@@ -4,11 +4,14 @@ import (
 	"fmt"
 	"github.com/ChimeraCoder/anaconda"
 	ui "github.com/gizak/termui"
+	"github.com/gnumast/tiny-care-terminal/git"
 	"net/url"
+	"os"
 )
 
 type Config struct {
-	Twitter *anaconda.TwitterApi
+	Twitter      *anaconda.TwitterApi
+	Repositories []*git.Repository
 }
 
 var config Config
@@ -21,6 +24,7 @@ func main() {
 	defer ui.Close()
 
 	config.Twitter = getTwitterClient()
+	config.Repositories = git.ToRepositories(os.Getenv("GIT_REPOSITORIES"))
 
 	bindQuit()
 	bindResize()
@@ -50,9 +54,9 @@ func redraw() {
 }
 
 func initDashboard() {
-	today := dailyCommits()
-	week := dailyCommits()
-	water := dailyCommits()
+	today := getCommits()
+	week := getCommits()
+	water := getCommits()
 	weather := makeWeather()
 	magic := magicRealismBox()
 	tweet2 := makeWeather()
@@ -68,21 +72,16 @@ func initDashboard() {
 	ui.Render(ui.Body)
 }
 
-func dailyCommits() (ls *ui.List) {
-	strs := []string{
-		"[/Users/alex/go/src/github.com/gnumast/tiny-care-terminal](fg-red)",
-		"[e9da701b](fg-green) - Fixed a thing",
-		"[d825f5e0](fg-green) - Added a feature",
-		"[2a84fe96](fg-green) - Initial commit",
-	}
+func getCommits() (ls *ui.List) {
+	commits := []string{}
 
 	ls = ui.NewList()
-	ls.Items = strs
+	ls.Items = commits
 	ls.ItemFgColor = ui.ColorWhite
-	ls.BorderLabel = "Today"
+	ls.BorderLabel = " Commits "
 	ls.BorderLabelFg = ui.ColorWhite
 	ls.BorderFg = ui.ColorBlue
-	ls.Height = (int)(ui.TermHeight() / 2)
+	ls.Height = int(ui.TermHeight() / 2)
 
 	return
 }
@@ -107,8 +106,23 @@ func magicRealismBox() (w *ui.Par) {
 		panic(err)
 	}
 
-	w = ui.NewPar(fmt.Sprintf("%v", result))
-	w.Height = (int)(ui.TermHeight() / 6)
+	// Use the height of the box to determine how many tweets to display
+	height := int(ui.TermHeight() / 6)
+
+	numberOfTweets := height
+
+	if height > len(result) {
+		numberOfTweets = len(result)
+	}
+
+	tweets := ""
+
+	for _, tweet := range result[0:numberOfTweets] {
+		tweets += fmt.Sprintf(" - %s\n", tweet.Text)
+	}
+
+	w = ui.NewPar(tweets)
+	w.Height = height
 	w.BorderLabel = " [@](fg-green)f0sdf09df "
 	w.BorderFg = ui.ColorBlue
 	w.BorderLabelFg = ui.ColorWhite
@@ -117,8 +131,8 @@ func magicRealismBox() (w *ui.Par) {
 }
 
 func getTwitterClient() *anaconda.TwitterApi {
-	anaconda.SetConsumerKey("consume")
-	anaconda.SetConsumerSecret("secret")
+	anaconda.SetConsumerKey(os.Getenv("TWITTER_CONSUMER"))
+	anaconda.SetConsumerSecret(os.Getenv("TWITTER_CONSUMER_SECRET"))
 
-	return anaconda.NewTwitterApi("access", "secret")
+	return anaconda.NewTwitterApi(os.Getenv("TWITTER_ACCESS"), os.Getenv("TWITTER_SECRET"))
 }
